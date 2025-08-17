@@ -67,7 +67,7 @@ function cookieOptions() {
   const sameSite = ["none","lax","strict"].includes(envSameSite) ? envSameSite : sameSiteDefault;
   const secure = typeof envSecure !== "undefined" ? String(envSecure).toLowerCase() === "true" : secureDefault;
   // Default: 15 minutes session cookie unless overridden via env
-  const maxAge = envMaxAge > 0 ? envMaxAge : 15 * 60 * 1000; // 15 minutes
+  const maxAge = envMaxAge > 0 ? envMaxAge : 60 * 60 * 1000; // 1 hour
 
   return {
     httpOnly: true,
@@ -192,6 +192,21 @@ export const me = asyncHandler(async (req, res) => {
         email: admin.email,
         avatar: admin.avatar,
         resume: admin.resumeUrl,
+        // return full qualification array for admin UI (unfiltered)
+        qualification: Array.isArray(admin.qualification)
+          ? admin.qualification.map((q) => ({
+              _id: q._id,
+              instituteLink: q.instituteLink,
+              mediaUrl: q.mediaUrl,
+              mediaType: q.mediaType,
+              title: q.title,
+              desc: q.desc,
+              skills: Array.isArray(q.skills) ? q.skills : [],
+              from: q.from,
+              to: q.to,
+              isPublished: q.isPublished,
+            }))
+          : [],
       },
     })
   );
@@ -216,7 +231,7 @@ export const authStatus = asyncHandler(async (_req, res) => {
   }
 
   const admin = await Admin.findOne({ email: envEmail })
-    .select("_id Fname Lname email avatar resumeUrl")
+    .select("_id Fname Lname email avatar resumeUrl qualification")
     .lean();
 
   if (!admin) {
@@ -231,6 +246,21 @@ export const authStatus = asyncHandler(async (_req, res) => {
         email: admin.email,
         avatar: admin.avatar,
         resume: admin.resumeUrl,
+        qualification: Array.isArray(admin.qualification)
+          ? admin.qualification
+              .filter((q) => q && q.isPublished)
+              .map((q) => ({
+                instituteLink: q.instituteLink,
+                mediaUrl: q.mediaUrl,
+                mediaType: q.mediaType,
+                title: q.title,
+                desc: q.desc,
+                skills: Array.isArray(q.skills) ? q.skills : [],
+                from: q.from,
+                to: q.to,
+                isPublished: q.isPublished,
+              }))
+          : [],
       },
     }, "Public admin profile")
   );
@@ -274,6 +304,33 @@ export const updateProfile = asyncHandler(async (req, res) => {
     updates.resumeUrl = req.body.resumeUrl.trim();
   }
 
+  // Allow updating qualifications (array) via JSON body or multipart (stringified JSON)
+  if (typeof req.body?.qualification !== "undefined") {
+    let qual = req.body.qualification;
+    if (typeof qual === "string") {
+      try {
+        qual = JSON.parse(qual);
+      } catch (_e) {
+        throw new apiError(400, "Invalid qualification payload: must be valid JSON");
+      }
+    }
+    if (!Array.isArray(qual)) {
+      throw new apiError(400, "qualification must be an array");
+    }
+    // Basic sanitation: ensure objects and coerce empty strings to undefined for optional fields
+    updates.qualification = qual.map((q) => ({
+      instituteLink: typeof q?.instituteLink === "string" ? q.instituteLink : "",
+      mediaUrl: typeof q?.mediaUrl === "string" && q.mediaUrl.trim() ? q.mediaUrl.trim() : undefined,
+      mediaType: typeof q?.mediaType === "string" ? q.mediaType : undefined,
+      title: typeof q?.title === "string" ? q.title : "",
+      desc: typeof q?.desc === "string" && q.desc.trim() ? q.desc.trim() : undefined,
+      skills: Array.isArray(q?.skills) ? q.skills.filter((s) => typeof s === "string" && s.trim()) : [],
+      from: q?.from || undefined,
+      to: q?.to || undefined,
+      isPublished: typeof q?.isPublished === "boolean" ? q.isPublished : false,
+    }));
+  }
+
   if (Object.keys(updates).length === 0) {
     return res.status(200).json(new apiRes(200, null, "No changes"));
   }
@@ -296,6 +353,20 @@ export const updateProfile = asyncHandler(async (req, res) => {
         email: updated.email,
         avatar: updated.avatar,
         resume: updated.resumeUrl,
+        qualification: Array.isArray(updated.qualification)
+          ? updated.qualification.map((q) => ({
+              _id: q._id,
+              instituteLink: q.instituteLink,
+              mediaUrl: q.mediaUrl,
+              mediaType: q.mediaType,
+              title: q.title,
+              desc: q.desc,
+              skills: Array.isArray(q.skills) ? q.skills : [],
+              from: q.from,
+              to: q.to,
+              isPublished: q.isPublished,
+            }))
+          : [],
       },
     }, "Profile updated")
   );

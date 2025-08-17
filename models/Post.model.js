@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 
 const postSchema = new Schema(
   {
-    platform: { type: String, required: true, trim: true },
+    platform: { type: String, required: true, trim: true, enum: ["x", "linkedin", "youtube", "facebook"] },
     title: { type: String, required: true, trim: true },
     link: { type: String, required: true, trim: true },
     excerpt: { type: String, default: "" },

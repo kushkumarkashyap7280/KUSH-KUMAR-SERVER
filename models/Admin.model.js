@@ -28,11 +28,23 @@ const adminSchema = new Schema({
         type : String,
         required : true
      },
+     qualification: [
+        {
+           instituteLink: { type: String, required: true },
+           mediaUrl: { type: String },
+           mediaType: { type: String, enum: ['svg', 'image'] },
+           title: { type: String, required: true },
+           desc: { type: String },
+           skills: [{ type: String }],
+           from: { type: Date, required: true },
+           to: { type: Date },
+           isPublished: { type: Boolean, default: false }
+        }
+     ],
 },
 {
     timestamps : true
 })
-
 
 const Admin = model("Admin",adminSchema);
 
