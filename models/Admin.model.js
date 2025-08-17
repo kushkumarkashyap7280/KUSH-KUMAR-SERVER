@@ -8,6 +8,9 @@ const adminSchema = new Schema({
      Lname : {
         type : String,
      },
+     description: {
+        type: String,
+     },
      avatar: {
         type: String,
         required: true,
@@ -49,3 +52,4 @@ const adminSchema = new Schema({
 const Admin = model("Admin",adminSchema);
 
 export default Admin;
+

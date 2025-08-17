@@ -190,6 +190,7 @@ export const me = asyncHandler(async (req, res) => {
         Fname: admin.Fname,
         Lname: admin.Lname,
         email: admin.email,
+        description: admin.description,
         avatar: admin.avatar,
         resume: admin.resumeUrl,
         // return full qualification array for admin UI (unfiltered)
@@ -231,7 +232,7 @@ export const authStatus = asyncHandler(async (_req, res) => {
   }
 
   const admin = await Admin.findOne({ email: envEmail })
-    .select("_id Fname Lname email avatar resumeUrl qualification")
+    .select("_id Fname Lname email description avatar resumeUrl qualification")
     .lean();
 
   if (!admin) {
@@ -244,6 +245,7 @@ export const authStatus = asyncHandler(async (_req, res) => {
         Fname: admin.Fname,
         Lname: admin.Lname,
         email: admin.email,
+        description: admin.description || "",
         avatar: admin.avatar,
         resume: admin.resumeUrl,
         qualification: Array.isArray(admin.qualification)
@@ -280,6 +282,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (typeof Fname === "string" && Fname.trim()) updates.Fname = Fname.trim();
   if (typeof Lname === "string") updates.Lname = Lname;
   if (typeof email === "string" && email.trim()) updates.email = email.toLowerCase().trim();
+  if (typeof req.body?.description === "string") updates.description = req.body.description;
 
   if (typeof password === "string" && password.length) {
     updates.password = await bcrypt.hash(password + BCRYPT_PEPPER, BCRYPT_ROUNDS);
@@ -351,6 +354,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
         Fname: updated.Fname,
         Lname: updated.Lname,
         email: updated.email,
+        description: updated.description,
         avatar: updated.avatar,
         resume: updated.resumeUrl,
         qualification: Array.isArray(updated.qualification)
