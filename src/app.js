@@ -15,10 +15,26 @@ import apiError from "../utils/apiError.js";
 
 const app = express();
 
-app.use(cors({
-    origin : process.env.CORS_ORIGIN,
-    credentials : true
-}))
+// Trust the first proxy (e.g., Railway/Nginx) so req.secure and cookie "secure" behavior work correctly
+app.set("trust proxy", 1);
+
+// CORS with allowlist (supports multiple origins via comma-separated CORS_ORIGIN)
+const allowlist = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // non-browser clients
+    if (allowlist.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS not allowed for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json({limit : "16mb"}));
 app.use(express.urlencoded({extended: true, limit : "16mb"}));
