@@ -50,12 +50,31 @@ export const publicResume = asyncHandler(async (_req, res) => {
 
 function cookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
+  const origin = (process.env.CORS_ORIGIN || "").split(",")[0]?.trim() || "";
+  const looksHttps = /^https:\/\//i.test(origin);
+
+  // Allow explicit overrides
+  const envSameSite = (process.env.COOKIE_SAMESITE || "").toLowerCase(); // "none" | "lax" | "strict"
+  const envSecure = process.env.COOKIE_SECURE;
+  const envMaxAge = Number(process.env.COOKIE_MAX_AGE_MS || 0);
+
+  // Default behavior:
+  // - If production OR origin looks like https (cross-site), use SameSite=None; Secure
+  // - Else fall back to lax (dev localhost)
+  const sameSiteDefault = (isProd || looksHttps) ? "none" : "lax";
+  const secureDefault = (isProd || looksHttps);
+
+  const sameSite = ["none","lax","strict"].includes(envSameSite) ? envSameSite : sameSiteDefault;
+  const secure = typeof envSecure !== "undefined" ? String(envSecure).toLowerCase() === "true" : secureDefault;
+  // Default: 15 minutes session cookie unless overridden via env
+  const maxAge = envMaxAge > 0 ? envMaxAge : 15 * 60 * 1000; // 15 minutes
+
   return {
     httpOnly: true,
-    sameSite: isProd ? "none" : "lax",
-    secure: isProd,
-    // 7 days (align with JWT_EXPIRES_IN default)
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    sameSite,
+    secure,
+    maxAge,
+    path: "/",
   };
 }
 
