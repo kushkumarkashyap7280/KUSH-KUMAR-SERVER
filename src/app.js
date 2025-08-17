@@ -26,11 +26,18 @@ const allowlist = (process.env.CORS_ORIGIN || "")
 
 const corsOptions = {
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // non-browser clients
+    // Allow server-to-server/health checks (no origin)
+    if (!origin) return cb(null, true);
+    // If no allowlist configured, allow all (prevents crashes in prod)
+    if (allowlist.length === 0) return cb(null, true);
+    // Allow exact matches
     if (allowlist.includes(origin)) return cb(null, true);
-    return cb(new Error(`CORS not allowed for origin: ${origin}`));
+    // Disallow others without throwing (responds without CORS headers)
+    return cb(null, false);
   },
   credentials: true,
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
