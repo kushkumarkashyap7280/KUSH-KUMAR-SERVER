@@ -9,18 +9,9 @@ export const createExperience = asyncHandler(async (req, res) => {
   if (!role || !company || !startDate) throw new apiError(400, "role, company, startDate are required");
 
   const files = req.files || {};
-  const imageFile = Array.isArray(files.image) && files.image[0] ? files.image[0] : null;
   const logoFile = Array.isArray(files.logo) && files.logo[0] ? files.logo[0] : null;
 
   const doc = { ...req.body };
-
-  // Upload image
-  if (imageFile?.path) {
-    const { url, public_id } = await uploadToCloudinary(imageFile.path, "portfolio/experience/image");
-    await deleteLocal(imageFile.path);
-    doc.image = url;
-    doc.imagePublicId = public_id;
-  }
 
   // Upload logo
   if (logoFile?.path) {
@@ -49,10 +40,11 @@ export const listExperiencesPublic = asyncHandler(async (_req, res) => {
   };
   const cards = items.map((e) => ({
     review: e.review || "",
-    imgPath: e.image || "",
-    logoPath: e.logoPath || e.image || "",
+    imgPath: "",
+    logoPath: e.logoPath || "",
     title: e.role,
     date: e.current ? `${fmt(e.startDate)} - Present` : `${fmt(e.startDate)} - ${e.endDate ? fmt(e.endDate) : ""}`,
+    current: !!e.current,
     responsibilities: Array.isArray(e.responsibilities) ? e.responsibilities : [],
     company: e.company || "",
     location: e.location || "",
@@ -82,18 +74,9 @@ export const updateExperience = asyncHandler(async (req, res) => {
   if (!current) throw new apiError(404, "Experience not found");
 
   const files = req.files || {};
-  const imageFile = Array.isArray(files.image) && files.image[0] ? files.image[0] : null;
   const logoFile = Array.isArray(files.logo) && files.logo[0] ? files.logo[0] : null;
 
   const updates = { ...req.body };
-
-  if (imageFile?.path) {
-    const { url, public_id } = await uploadToCloudinary(imageFile.path, "portfolio/experience/image");
-    await deleteLocal(imageFile.path);
-    updates.image = url;
-    updates.imagePublicId = public_id;
-    if (current.imagePublicId) await deleteFromCloudinary(current.imagePublicId);
-  }
 
   if (logoFile?.path) {
     const { url, public_id } = await uploadToCloudinary(logoFile.path, "portfolio/experience/logo");

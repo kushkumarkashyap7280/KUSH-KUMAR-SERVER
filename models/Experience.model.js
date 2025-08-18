@@ -10,11 +10,9 @@ const experienceSchema = new Schema(
     current: { type: Boolean, default: false },
     responsibilities: { type: [String], default: [] },
     tags: { type: [String], default: [] },
-    image: { type: String, default: "" },
-    imagePublicId: { type: String, default: "" },
     logoPath: { type: String, default: "" },
     logoPublicId: { type: String, default: "" },
-    review: { type: String, default: "" },
+
     order: { type: Number, default: 0 },
     published: { type: Boolean, default: true },
   },

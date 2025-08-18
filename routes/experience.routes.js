@@ -12,12 +12,11 @@ router.get("/public/:id", getExperiencePublic);
 // All routes below require a valid admin cookie (JWT)
 router.use(requireAdmin);
 
-// Conditionally parse multipart form-data for image/logo
+// Conditionally parse multipart form-data for logo only
 const maybeMultipart = (req, res, next) => {
   const ct = (req.headers["content-type"] || "").toLowerCase();
   if (ct.includes("multipart/form-data")) {
     return upload.fields([
-      { name: "image", maxCount: 1 },
       { name: "logo", maxCount: 1 },
     ])(req, res, next);
   }
