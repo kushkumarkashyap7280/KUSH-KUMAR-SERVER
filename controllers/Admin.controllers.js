@@ -58,16 +58,19 @@ function cookieOptions() {
   const envSecure = process.env.COOKIE_SECURE;
   const envMaxAge = Number(process.env.COOKIE_MAX_AGE_MS || 0);
 
-  // Default behavior:
-  // - If production OR origin looks like https (cross-site), use SameSite=None; Secure
-  // - Else fall back to lax (dev localhost)
-  const sameSiteDefault = (isProd || looksHttps) ? "none" : "lax";
-  const secureDefault = (isProd || looksHttps);
+  // For cross-origin requests (different domains), use SameSite=None with Secure
+  // Force SameSite=None for cross-domain cookie sharing
+  const sameSiteDefault = "none";
+  // For SameSite=None, cookies MUST be Secure
+  const secureDefault = true;
 
   const sameSite = ["none","lax","strict"].includes(envSameSite) ? envSameSite : sameSiteDefault;
   const secure = typeof envSecure !== "undefined" ? String(envSecure).toLowerCase() === "true" : secureDefault;
-  // Default: 15 minutes session cookie unless overridden via env
+  // Default: 1 hour session cookie unless overridden via env
   const maxAge = envMaxAge > 0 ? envMaxAge : 60 * 60 * 1000; // 1 hour
+
+  // For debugging
+  console.log("Cookie options:", { sameSite, secure, httpOnly: true, maxAge, path: "/" });
 
   return {
     httpOnly: true,
@@ -75,6 +78,9 @@ function cookieOptions() {
     secure,
     maxAge,
     path: "/",
+    // Domain is optional and typically not needed
+    // If set, should be the root domain (e.g., .example.com)
+    // domain: process.env.COOKIE_DOMAIN || undefined,
   };
 }
 
@@ -130,7 +136,7 @@ export const signup = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .cookie(COOKIE_NAME, token, cookieOptions())
-    .json(new apiRes(201, null, "Signup successful"));
+    .json(new apiRes(201, { token }, "Signup successful"));
 });
 
 // POST /api/admin/login
@@ -163,6 +169,7 @@ export const login = asyncHandler(async (req, res) => {
         avatar: admin.avatar,
         resume : admin.resumeUrl
       },
+      token
     }, "Login successful"));
 });
 
