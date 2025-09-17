@@ -52,25 +52,44 @@ function cookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
   const origin = (process.env.CORS_ORIGIN || "").split(",")[0]?.trim() || "";
   const looksHttps = /^https:\/\//i.test(origin);
+  
+  // Determine if we're running in a local development environment
+  const isLocalDev = origin.includes('localhost') || origin.includes('127.0.0.1');
 
-  // Allow explicit overrides
+  // Allow explicit overrides from environment variables
   const envSameSite = (process.env.COOKIE_SAMESITE || "").toLowerCase(); // "none" | "lax" | "strict"
   const envSecure = process.env.COOKIE_SECURE;
   const envMaxAge = Number(process.env.COOKIE_MAX_AGE_MS || 0);
 
-  // For cross-origin requests (different domains), use SameSite=None with Secure
-  // Force SameSite=None for cross-domain cookie sharing
-  const sameSiteDefault = "none";
-  // For SameSite=None, cookies MUST be Secure
-  const secureDefault = true;
+  // Choose appropriate defaults based on environment:
+  // For local development: SameSite=Lax, Secure=false (works with http://localhost)
+  // For production/cross-domain: SameSite=None, Secure=true (requires HTTPS)
+  let sameSiteDefault, secureDefault;
+  
+  if (isLocalDev) {
+    sameSiteDefault = "lax";
+    secureDefault = false;
+  } else {
+    sameSiteDefault = "none";
+    secureDefault = true;
+  }
 
   const sameSite = ["none","lax","strict"].includes(envSameSite) ? envSameSite : sameSiteDefault;
   const secure = typeof envSecure !== "undefined" ? String(envSecure).toLowerCase() === "true" : secureDefault;
-  // Default: 1 hour session cookie unless overridden via env
-  const maxAge = envMaxAge > 0 ? envMaxAge : 60 * 60 * 1000; // 1 hour
+  
+  // Use a longer expiration for better user experience - 7 days
+  const maxAge = envMaxAge > 0 ? envMaxAge : 7 * 24 * 60 * 60 * 1000; // 7 days
 
   // For debugging
-  console.log("Cookie options:", { sameSite, secure, httpOnly: true, maxAge, path: "/" });
+  console.log("Cookie options:", { 
+    sameSite, 
+    secure, 
+    httpOnly: true, 
+    maxAge, 
+    path: "/",
+    isLocalDev,
+    origin
+  });
 
   return {
     httpOnly: true,
