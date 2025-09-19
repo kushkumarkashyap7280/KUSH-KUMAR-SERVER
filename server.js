@@ -19,3 +19,8 @@ connectDB()
     console.log("MONGO db connection failed !!! ", err);
 })
 
+app.get("/api/status", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+
